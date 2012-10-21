@@ -51,28 +51,37 @@ public class Compiluration {
 			FileWriter fileWriter = new FileWriter(file);
 			Writer writer = new BufferedWriter(fileWriter);
 			writer.append("package fr.compiluration;\n\npublic final class Properties {\n");
-			writeClassContent(writer, properties);
+			writeClassContent(writer, properties, 1);
 			writer.append("}");
 			writer.close();
 			fileWriter.close();
 		}
 	}
 
-	public static void writeClassContent(Writer writer, Map<String, Object> properties) throws IOException {
+	public static void writeIndentation(Writer writer, int level) throws IOException {
+		for(int i = 0 ; i < level; i++) {
+			writer.append("\t");
+		}
+	}
+
+	public static void writeClassContent(Writer writer, Map<String, Object> properties, int indentationLevel) throws IOException {
 		for(Map.Entry<String, Object> entry : properties.entrySet()) {
 			if (entry.getValue() instanceof String) {
-				computeOneKey(writer, entry.getKey(), (String) entry.getValue()); 
+				computeOneKey(writer, entry.getKey(), (String) entry.getValue(), indentationLevel); 
 			} else {
 				Map<String, Object> subProperties = (Map<String, Object>) entry.getValue();
-				writer.append("\tpublic static final class ").append(entry.getKey()).append(" {\n");
-				writeClassContent(writer, subProperties);
-				writer.append("\t}\n");
+				writeIndentation(writer, indentationLevel);
+				writer.append("public static final class ").append(entry.getKey()).append(" {\n");
+				writeClassContent(writer, subProperties, indentationLevel + 1);
+				writeIndentation(writer, indentationLevel);
+				writer.append("}\n");
 			}
 		}
 	}
 
-	private static void computeOneKey(Writer writer, String key, String value) throws IOException {
-		writer.append("\tpublic static final ");
+	private static void computeOneKey(Writer writer, String key, String value, int indentationLevel) throws IOException {
+		writeIndentation(writer, indentationLevel);
+		writer.append("public static final ");
 		Type type;
 		try {
 			Integer.parseInt(value);
