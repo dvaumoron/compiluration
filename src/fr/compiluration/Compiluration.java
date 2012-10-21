@@ -22,60 +22,54 @@ public class Compiluration {
 			Map<String, Object> properties = new LinkedHashMap<String, Object>();
 			while(keys.hasMoreElements()) {
 				String key = keys.nextElement();
-				String[] subKeys = key.split("\\.");
-				int i = 1;
-				Map<String, Object> currentProperties = properties;
-				for (String subKey : subKeys) {
-					Object property = currentProperties.get(subKey);
-					if (property == null) {
-						if (i == subKeys.length) {
-							currentProperties.put(subKey, bundle.getString(key));
-						} else {
-							Map<String, Object> tempProperties = new LinkedHashMap<String, Object>();
-							currentProperties.put(subKey, tempProperties);
-							currentProperties = tempProperties;
-						}
-					} else {
-						if (i != subKeys.length) {
-							currentProperties = (Map<String, Object>) property;
-						}
-					}
-					i++;
+				addToProperties(
+						key.split("\\."),
+						bundle.getString(key),
+						properties);
+			}
+
+			FileWriter fileWriter = null;
+			Writer writer = null;
+			try {
+				File file = new File("gen/fr/compiluration/Properties.java");
+				if (!file.exists()) {
+					file.createNewFile();
+				}
+				fileWriter = new FileWriter(file);
+				writer = new BufferedWriter(fileWriter);
+				writer.append("package fr.compiluration;\n\npublic final class Properties {\n");
+				writeClassContent(writer, properties, 1);
+				writer.append("}");
+			} finally {
+				if (writer != null) {
+					writer.close();
+				}
+				if (fileWriter != null) {
+					fileWriter.close();
 				}
 			}
-			
-			File file = new File("gen/fr/compiluration/Properties.java");
-			if (!file.exists()) {
-				file.createNewFile();
-			}
-			FileWriter fileWriter = new FileWriter(file);
-			Writer writer = new BufferedWriter(fileWriter);
-			writer.append("package fr.compiluration;\n\npublic final class Properties {\n");
-			writeClassContent(writer, properties, 1);
-			writer.append("}");
-			writer.close();
-			fileWriter.close();
 		}
 	}
 
-	public static void writeIndentation(Writer writer, int level) throws IOException {
-		for(int i = 0 ; i < level; i++) {
-			writer.append("\t");
-		}
-	}
-
-	public static void writeClassContent(Writer writer, Map<String, Object> properties, int indentationLevel) throws IOException {
-		for(Map.Entry<String, Object> entry : properties.entrySet()) {
-			if (entry.getValue() instanceof String) {
-				computeOneKey(writer, entry.getKey(), (String) entry.getValue(), indentationLevel); 
+	private static void addToProperties(
+			String[] subKeys, String value, Map<String, Object> properties) {
+		int i = 1;
+		for (String subKey : subKeys) {
+			Object property = properties.get(subKey);
+			if (property == null) {
+				if (i == subKeys.length) {
+					properties.put(subKey, value);
+				} else {
+					Map<String, Object> tempProperties = new LinkedHashMap<String, Object>();
+					properties.put(subKey, tempProperties);
+					properties = tempProperties;
+				}
 			} else {
-				Map<String, Object> subProperties = (Map<String, Object>) entry.getValue();
-				writeIndentation(writer, indentationLevel);
-				writer.append("public static final class ").append(entry.getKey()).append(" {\n");
-				writeClassContent(writer, subProperties, indentationLevel + 1);
-				writeIndentation(writer, indentationLevel);
-				writer.append("}\n");
+				if (i != subKeys.length) {
+					properties = (Map<String, Object>) property;
+				}
 			}
+			i++;
 		}
 	}
 
@@ -100,6 +94,27 @@ public class Compiluration {
 		writer.append(" = ");
 		type.appendValue(writer, value);
 		writer.append(";\n");
+	}
+
+	private static void writeClassContent(Writer writer, Map<String, Object> properties, int indentationLevel) throws IOException {
+		for(Map.Entry<String, Object> entry : properties.entrySet()) {
+			if (entry.getValue() instanceof String) {
+				computeOneKey(writer, entry.getKey(), (String) entry.getValue(), indentationLevel); 
+			} else {
+				Map<String, Object> subProperties = (Map<String, Object>) entry.getValue();
+				writeIndentation(writer, indentationLevel);
+				writer.append("public static final class ").append(entry.getKey()).append(" {\n");
+				writeClassContent(writer, subProperties, indentationLevel + 1);
+				writeIndentation(writer, indentationLevel);
+				writer.append("}\n");
+			}
+		}
+	}
+
+	private static void writeIndentation(Writer writer, int level) throws IOException {
+		for(int i = 0 ; i < level; i++) {
+			writer.append("\t");
+		}
 	}
 
 }
