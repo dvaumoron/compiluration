@@ -31,7 +31,9 @@ public class Compiluration {
 			FileWriter fileWriter = null;
 			Writer writer = null;
 			try {
-				File file = new File("gen/fr/compiluration/Properties.java");
+				File dir = new File("gen/fr/compiluration");
+				dir.mkdirs();
+				File file = new File(dir.getPath() + "/Properties.java");
 				if (!file.exists()) {
 					file.createNewFile();
 				}
