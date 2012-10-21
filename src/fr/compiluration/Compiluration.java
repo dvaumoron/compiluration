@@ -6,6 +6,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.ResourceBundle;
 
 
@@ -17,19 +19,55 @@ public class Compiluration {
 		} else {
 			ResourceBundle bundle = ResourceBundle.getBundle(args[0]);
 			Enumeration<String> keys = bundle.getKeys();
+			Map<String, Object> properties = new LinkedHashMap<String, Object>();
+			while(keys.hasMoreElements()) {
+				String key = keys.nextElement();
+				String[] subKeys = key.split("\\.");
+				int i = 1;
+				Map<String, Object> currentProperties = properties;
+				for (String subKey : subKeys) {
+					Object property = currentProperties.get(subKey);
+					if (property == null) {
+						if (i == subKeys.length) {
+							currentProperties.put(subKey, bundle.getString(key));
+						} else {
+							Map<String, Object> tempProperties = new LinkedHashMap<String, Object>();
+							currentProperties.put(subKey, tempProperties);
+							currentProperties = tempProperties;
+						}
+					} else {
+						if (i != subKeys.length) {
+							currentProperties = (Map<String, Object>) property;
+						}
+					}
+					i++;
+				}
+			}
+			
 			File file = new File("gen/fr/compiluration/Properties.java");
 			if (!file.exists()) {
 				file.createNewFile();
 			}
-			Writer writer = new BufferedWriter(new FileWriter(file));
+			FileWriter fileWriter = new FileWriter(file);
+			Writer writer = new BufferedWriter(fileWriter);
 			writer.append("package fr.compiluration;\n\npublic final class Properties {\n");
-			while(keys.hasMoreElements()) {
-				String key = keys.nextElement();
-				computeOneKey(writer, key, bundle.getString(key));
-			}
+			writeClassContent(writer, properties);
 			writer.append("}");
-			writer.flush();
 			writer.close();
+			fileWriter.close();
+		}
+	}
+
+	public static void writeClassContent(Writer writer, Map<String, Object> properties) throws IOException {
+		for(Map.Entry<String, Object> entry : properties.entrySet()) {
+			if (entry.getValue() instanceof String) {
+				computeOneKey(writer, entry.getKey(), (String) entry.getValue()); 
+			} else {
+				Map<String, Object> subProperties = (Map<String, Object>) entry.getValue();
+				writer.append("\tpublic static final class ").append(entry.getKey()).append(" {\n");
+				writeClassContent(writer, subProperties);
+				writer.append("\t}\n");
+			}
 		}
 	}
 
@@ -47,35 +85,12 @@ public class Compiluration {
 				type = Type.STRING;
 			}
 		}
-		int i = 0;
-		String[] keys = key.split("\\.");
-		while (i < keys.length - 1) {
-			writer.append("class ");
-			writer.append(keys[i]);
-			writer.append(" {\n\t");
-			int j = -1;
-			while (j < i) {
-				writer.append("\t");
-				j++;
-			}
-			writer.append("public static final ");
-			i++;
-		}
 		writer.append(type.toString());
 		writer.append(" ");
-		writer.append(keys[i]);
+		writer.append(key);
 		writer.append(" = ");
 		type.appendValue(writer, value);
 		writer.append(";\n");
-		while (i > 0) {
-			int j = i;
-			while (j > 0) {
-				writer.append("\t");
-				j--;
-			}
-			writer.append("}\n");
-			i--;
-		}
 	}
 
 	private static enum Type {
