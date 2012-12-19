@@ -19,7 +19,7 @@ public class Compiluration {
 		} else {
 			ResourceBundle bundle = ResourceBundle.getBundle(args[0]);
 			Enumeration<String> keys = bundle.getKeys();
-			Map<String, Object> properties = new LinkedHashMap<String, Object>();
+			Map<String, Writable> properties = new LinkedHashMap<String, Writable>();
 			while(keys.hasMoreElements()) {
 				String key = keys.nextElement();
 				addToProperties(
@@ -54,66 +54,36 @@ public class Compiluration {
 	}
 
 	private static void addToProperties(
-			String[] subKeys, String value, Map<String, Object> properties) {
+			String[] subKeys, String value, Map<String, Writable> properties) {
 		int i = 1;
 		for (String subKey : subKeys) {
-			Object property = properties.get(subKey);
+			Writable property = properties.get(subKey);
 			if (property == null) {
 				if (i == subKeys.length) {
-					properties.put(subKey, value);
+					properties.put(subKey, new Variable(subKey, value));
 				} else {
-					Map<String, Object> tempProperties = new LinkedHashMap<String, Object>();
+					Class tempProperties = new Class(subKey);
 					properties.put(subKey, tempProperties);
-					properties = tempProperties;
+					properties = tempProperties.getWritables();
 				}
 			} else {
 				if (i != subKeys.length) {
-					properties = (Map<String, Object>) property;
+					properties = ((Class) property).getWritables();
 				}
 			}
 			i++;
 		}
 	}
 
-	private static void computeOneKey(Writer writer, String key, String value, int indentationLevel) throws IOException {
-		writeIndentation(writer, indentationLevel);
-		writer.append("public static final ");
-		Type type;
-		try {
-			Integer.parseInt(value);
-			type = Type.INT;
-		} catch (NumberFormatException nfe) {
-			try {
-				Double.parseDouble(value);
-				type = Type.DOUBLE;
-			} catch (NumberFormatException nfe2) {
-				type = Type.STRING;
-			}
-		}
-		writer.append(type.toString());
-		writer.append(" ");
-		writer.append(key);
-		writer.append(" = ");
-		type.appendValue(writer, value);
-		writer.append(";\n");
-	}
+	
 
-	private static void writeClassContent(Writer writer, Map<String, Object> properties, int indentationLevel) throws IOException {
-		for(Map.Entry<String, Object> entry : properties.entrySet()) {
-			if (entry.getValue() instanceof String) {
-				computeOneKey(writer, entry.getKey(), (String) entry.getValue(), indentationLevel); 
-			} else {
-				Map<String, Object> subProperties = (Map<String, Object>) entry.getValue();
-				writeIndentation(writer, indentationLevel);
-				writer.append("public static final class ").append(entry.getKey()).append(" {\n");
-				writeClassContent(writer, subProperties, indentationLevel + 1);
-				writeIndentation(writer, indentationLevel);
-				writer.append("}\n");
-			}
+	private static void writeClassContent(Writer writer, Map<String, Writable> properties, int indentationLevel) throws IOException {
+		for(Writable writable : properties.values()) {
+			writable.write(writer, indentationLevel);
 		}
 	}
 
-	private static void writeIndentation(Writer writer, int level) throws IOException {
+	public static void writeIndentation(Writer writer, int level) throws IOException {
 		for(int i = 0 ; i < level; i++) {
 			writer.append("\t");
 		}

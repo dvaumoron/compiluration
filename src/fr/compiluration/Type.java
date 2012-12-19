@@ -5,7 +5,7 @@ import java.io.Writer;
 
 public enum Type {
 
-	INT("int"),
+	LONG("long"),
 	DOUBLE("double"),
 	STRING("String") {
 		public void appendValue(Writer builder, String value) throws IOException {
