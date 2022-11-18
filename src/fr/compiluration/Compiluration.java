@@ -66,16 +66,12 @@ public class Compiluration {
 					properties.put(subKey, tempProperties);
 					properties = tempProperties.getWritables();
 				}
-			} else {
-				if (i != subKeys.length) {
-					properties = ((Class) property).getWritables();
-				}
+			} else if (i != subKeys.length) {
+				properties = ((Class) property).getWritables();
 			}
 			i++;
 		}
 	}
-
-	
 
 	private static void writeClassContent(Writer writer, Map<String, Writable> properties, int indentationLevel) throws IOException {
 		for(Writable writable : properties.values()) {
